@@ -1,0 +1,36 @@
+<meta>
+    <info author="Antigravity" name="GTA San Andreas SP NPC System" version="1.0.0" type="script" description="100% Single Player Pedestrian AI, Popcycle and Task System for MTA:SA" />
+
+    <!-- Shared Configurations and Data -->
+    <script src="config.lua" type="shared" />
+    <script src="shared/math_utils.lua" type="shared" />
+    <script src="shared/ped_stats.lua" type="shared" />
+    <script src="shared/popcycle_data.lua" type="shared" />
+    <script src="shared/zones_data.lua" type="shared" />
+
+    <!-- Server Scripts -->
+    <script src="server/server_main.lua" type="server" />
+    <script src="server/server_spawner.lua" type="server" />
+    <script src="server/server_damage.lua" type="server" />
+
+    <!-- Client Scripts (AI Architecture & Events) -->
+    <script src="client/nodes.lua" type="client" cache="false" />
+    <script src="client/utils/collision_utils.lua" type="client" />
+    <script src="client/ai/path_manager.lua" type="client" />
+    <script src="client/ai/task_base.lua" type="client" />
+    <script src="client/ai/task_manager.lua" type="client" />
+    <script src="client/ai/task_wander.lua" type="client" />
+    <script src="client/ai/task_flee.lua" type="client" />
+    <script src="client/ai/task_combat.lua" type="client" />
+    <script src="client/ai/task_reactions.lua" type="client" />
+    <script src="client/ai/task_chat.lua" type="client" />
+    <script src="client/events/event_handler.lua" type="client" />
+    <script src="client/events/event_scanner.lua" type="client" />
+    <script src="client/client_spawner.lua" type="client" />
+    <script src="client/client_main.lua" type="client" />
+
+    <!-- Settings -->
+    <settings>
+        <setting name="*debug" value="false" />
+    </settings>
+</meta>
