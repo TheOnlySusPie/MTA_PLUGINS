@@ -4,7 +4,7 @@
 -- ==============================================================================
 
 -- ==============================================================================
--- 1. CTaskComplexDiveAway (Elugrás száguldó jármű elől)
+-- 1. CTaskComplexDiveAway (Elugrás száguldó jármű elől & Felállás - GTA SA CTaskComplexEvasiveDiveAndGetUp)
 -- ==============================================================================
 CTaskComplexDiveAway = setmetatable({}, { __index = CTaskComplex })
 CTaskComplexDiveAway.__index = CTaskComplexDiveAway
@@ -12,9 +12,18 @@ CTaskComplexDiveAway.__index = CTaskComplexDiveAway
 function CTaskComplexDiveAway:new(vehicle)
     local instance = CTaskComplex.new(self, TASK_COMPLEX_DIVE_AWAY)
     instance.vehicle = vehicle
+    instance.state = "INIT" -- INIT, DIVE, PAUSE, GET_UP, FINISHED
     instance.startTime = getTickCount()
-    instance.duration = 1400 -- Animáció időtartama
-    instance.initiated = false
+    instance.diveDuration = 750
+    instance.pauseDuration = 550
+    instance.getUpDuration = 1700
+    instance.startX = 0
+    instance.startY = 0
+    instance.startZ = 0
+    instance.landX = 0
+    instance.landY = 0
+    instance.landZ = 0
+    instance.diveAngle = 0
     return instance
 end
 
@@ -23,30 +32,140 @@ function CTaskComplexDiveAway:makeAbortable(ped)
         setPedAnimation(ped, false)
         setPedControlState(ped, "forwards", false)
         setPedControlState(ped, "sprint", false)
+        setPedAnalogControlState(ped, "forwards", 0)
     end
     self.status = TASK_STATUS_ABORTED
     return true
 end
 
 function CTaskComplexDiveAway:process(ped)
-    if not isElement(ped) then
+    if not isElement(ped) or isPedDead(ped) then
         self.status = TASK_STATUS_FINISHED
         return self.status
     end
     
     local now = getTickCount()
-    if not self.initiated then
-        self.initiated = true
-        self.startTime = now
-        
-        -- Kiszámoljuk az elugrás irányát (merőlegesen a jármű mozgásvektorára)
-        local dodgeDir = (math.random(1, 2) == 1) and "ev_dive" or "dodge_front"
-        setPedAnimation(ped, "ped", dodgeDir, 1200, false, false, false, false)
-    end
     
-    if now - self.startTime >= self.duration then
-        setPedAnimation(ped, false)
-        self.status = TASK_STATUS_FINISHED
+    -- 1. FÁZIS: INICIALIZÁLÁS (Elugrási irány és érkezési pont kiszámítása)
+    if self.state == "INIT" then
+        local px, py, pz = getElementPosition(ped)
+        local vx, vy, vz = px + 1, py, pz
+        local vvx, vvy, vvz = 0, 0, 0
+        
+        if isElement(self.vehicle) then
+            vx, vy, vz = getElementPosition(self.vehicle)
+            vvx, vvy, vvz = getElementVelocity(self.vehicle)
+        end
+        
+        -- Elugrási irány: merőlegesen az autó mozgásvonalára, az autótól távolodva
+        local evX, evY = 0, 0
+        local vSpeedSq = vvx * vvx + vvy * vvy
+        if vSpeedSq > 0.001 then
+            local perpLeftX = -vvy
+            local perpLeftY = vvx
+            local toPedX = px - vx
+            local toPedY = py - vy
+            
+            -- Ha a ped a kocsi bal oldalán van, balra ugrik, ha jobbon, jobbra
+            if (toPedX * perpLeftX + toPedY * perpLeftY) >= 0 then
+                evX = perpLeftX
+                evY = perpLeftY
+            else
+                evX = -perpLeftX
+                evY = -perpLeftY
+            end
+        else
+            evX = px - vx
+            evY = py - vy
+        end
+        
+        local len = math.sqrt(evX * evX + evY * evY)
+        if len > 0.001 then
+            evX = evX / len
+            evY = evY / len
+        else
+            evX = 1
+            evY = 0
+        end
+        
+        local evadeAngle = MathUtils.findRotation(0, 0, evX, evY)
+        local diveDist = 2.2 -- Eredeti GTA SA elugrási távolság
+        
+        -- Célpont kiszámítása
+        local tX, tY = MathUtils.getPointInFront(px, py, evadeAngle, diveDist)
+        local tZ = getGroundPosition(tX, tY, pz + 1.0)
+        if not tZ or tZ <= 0 then tZ = pz end
+        
+        -- Falütközés ellenőrzése
+        local hit = isLineOfSightClear(px, py, pz + 0.5, tX, tY, tZ + 0.5, true, false, false, true, false, false, false, ped)
+        if not hit then
+            -- Ha falba ugrana, az ellenkező oldalra ugrik
+            evadeAngle = MathUtils.normalizeAngle(evadeAngle + 180)
+            tX, tY = MathUtils.getPointInFront(px, py, evadeAngle, diveDist)
+            tZ = getGroundPosition(tX, tY, pz + 1.0) or pz
+        end
+        
+        self.startX, self.startY, self.startZ = px, py, pz
+        self.landX, self.landY, self.landZ = tX, tY, tZ
+        self.diveAngle = evadeAngle
+        
+        -- Ped befordítása az elugrás irányába
+        setPedCameraRotation(ped, evadeAngle)
+        setElementRotation(ped, 0, 0, evadeAngle, "default", true)
+        
+        -- Megállás és elugrás animáció indítása (freezeLastFrame = true, hogy a földön maradjon!)
+        setPedControlState(ped, "forwards", false)
+        setPedControlState(ped, "sprint", false)
+        setPedAnalogControlState(ped, "forwards", 0)
+        setPedAnimation(ped, "ped", "ev_dive", 1000, false, false, false, true)
+        
+        self.state = "DIVE"
+        self.diveStartTime = now
+        
+    -- 2. FÁZIS: REPÜLÉS & FÖLDETÉRÉS (Fizikai koordináta sima mozgatása az érkezési pontra)
+    elseif self.state == "DIVE" then
+        local elapsed = now - self.diveStartTime
+        local progress = math.min(1.0, elapsed / self.diveDuration)
+        -- Természetes parabola lassulás (ease out quad)
+        local ease = progress * (2 - progress)
+        
+        local cx = self.startX + (self.landX - self.startX) * ease
+        local cy = self.startY + (self.landY - self.startY) * ease
+        local cz = getGroundPosition(cx, cy, self.startZ + 1.2)
+        if not cz or cz <= 0 then cz = self.startZ end
+        
+        setElementPosition(ped, cx, cy, cz)
+        setElementRotation(ped, 0, 0, self.diveAngle, "default", true)
+        
+        if elapsed >= self.diveDuration then
+            setElementPosition(ped, self.landX, self.landY, self.landZ)
+            self.state = "PAUSE"
+            self.pauseStartTime = now
+        end
+        
+    -- 3. FÁZIS: FÖLDÖN FEKVÉS (GTA SA TaskSimplePause - lélegzetvétel a földön)
+    elseif self.state == "PAUSE" then
+        if now - self.pauseStartTime >= self.pauseDuration then
+            self.state = "GET_UP"
+            self.getUpStartTime = now
+            -- Hivatalos GTA SA felállási animáció pontosan ott, ahol a földre esett!
+            setPedAnimation(ped, "ped", "getup", self.getUpDuration, false, false, false, false)
+        end
+        
+    -- 4. FÁZIS: FELÁLLÁS & SÉTA FOLYTATÁSA AZ ÚJ HELYRŐL (GTA SA TaskSimpleGetUp)
+    elseif self.state == "GET_UP" then
+        if now - self.getUpStartTime >= self.getUpDuration then
+            setPedAnimation(ped, false)
+            self.state = "FINISHED"
+            self.status = TASK_STATUS_FINISHED
+            
+            -- Séta újrainicializálása a felállás koordinátájáról:
+            -- keres egy új járdapontot a felállás helyétől, és onnan sétál tovább békésen!
+            local tm = PedManager.getTaskManager(ped)
+            if tm then
+                tm:setTask(CTaskComplexWander:new(), TASK_PRIMARY_DEFAULT)
+            end
+        end
     end
     
     return self.status

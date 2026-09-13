@@ -24,6 +24,30 @@ TASK_COMPLEX_HANDS_UP               = 15
 TASK_COMPLEX_COWER                  = 16
 TASK_SIMPLE_SHAKE_FIST              = 17
 TASK_SIMPLE_LOOK_ABOUT              = 18
+TASK_COMPLEX_MEDIC_CPR              = 19
+TASK_COMPLEX_EXTINGUISH_FIRE        = 20
+TASK_COMPLEX_POLICE_ARREST          = 21
+
+TaskNames = {
+    [TASK_NONE]                      = "None",
+    [TASK_SIMPLE_STAND_STILL]        = "StandStill",
+    [TASK_SIMPLE_GO_TO_POINT]        = "GoToPoint",
+    [TASK_SIMPLE_FIGHT]              = "Fight",
+    [TASK_SIMPLE_USE_GUN]            = "UseGun",
+    [TASK_SIMPLE_DUCK]               = "Duck",
+    [TASK_COMPLEX_WANDER]            = "WANDER",
+    [TASK_COMPLEX_SMART_FLEE_ENTITY] = "SMART_FLEE",
+    [TASK_COMPLEX_KILL_PED_ON_FOOT]  = "COMBAT",
+    [TASK_COMPLEX_CHAT]              = "CHAT",
+    [TASK_COMPLEX_DIVE_AWAY]         = "DIVE_AWAY",
+    [TASK_COMPLEX_HANDS_UP]          = "HANDS_UP",
+    [TASK_COMPLEX_COWER]             = "COWER",
+    [TASK_SIMPLE_SHAKE_FIST]         = "SHAKE_FIST",
+    [TASK_SIMPLE_LOOK_ABOUT]         = "LOOK_ABOUT",
+    [TASK_COMPLEX_MEDIC_CPR]         = "MEDIC_CPR",
+    [TASK_COMPLEX_EXTINGUISH_FIRE]   = "EXTINGUISH_FIRE",
+    [TASK_COMPLEX_POLICE_ARREST]     = "POLICE_ARREST",
+}
 
 -- ==============================================================================
 -- CTask Alaposztály

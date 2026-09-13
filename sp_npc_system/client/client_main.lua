@@ -25,6 +25,23 @@ function PedManager.init()
     addEvent("sp_npc:clientRegisterPed", true)
     addEventHandler("sp_npc:clientRegisterPed", resourceRoot, PedManager.registerPed)
     
+    -- Újraélesztett ped esemény kezelése
+    addEvent("sp_npc:clientOnPedRevived", true)
+    addEventHandler("sp_npc:clientOnPedRevived", resourceRoot, function(ped)
+        if not isElement(ped) then return end
+        PedManager.registerPed(ped)
+        setPedAnimation(ped, "ped", "getup", 2200, false, false, false, false)
+        setTimer(function()
+            if isElement(ped) and not isPedDead(ped) then
+                setPedAnimation(ped, false)
+                local tm = PedManager.getTaskManager(ped)
+                if tm then
+                    tm:setTask(CTaskComplexWander:new(), TASK_PRIMARY_DEFAULT)
+                end
+            end
+        end, 2200, 1)
+    end)
+    
     -- Megkeressük a már létező pedeket csatlakozáskor
     local existingPeds = getElementsByType("ped", root, true)
     for _, ped in ipairs(existingPeds) do
@@ -130,6 +147,7 @@ function PedManager.pulseAI()
     -- Scanner és Spawner pulzálás
     EventScanner.pulse()
     ClientSpawner.pulse()
+    EmergencyManager.pulse()
     
     local px, py, pz = getElementPosition(localPlayer)
     
@@ -166,24 +184,50 @@ function PedManager.pulseAI()
     end
 end
 
--- Debug megjelenítés
+-- Debug megjelenítés (mindig aktív, ha Config.Debug = true)
 function PedManager.onRender()
     if not Config.Debug then return end
     
     local px, py, pz = getElementPosition(localPlayer)
+    local activeCount = 0
+    
     for ped, data in pairs(PedManager.managedPeds) do
         if isElement(ped) and not isPedDead(ped) then
+            activeCount = activeCount + 1
             local x, y, z = getElementPosition(ped)
             local dist = MathUtils.getDistance3D(px, py, pz, x, y, z)
-            if dist < 25.0 then
-                local sx, sy = getScreenFromWorldPosition(x, y, z + 1.1)
+            
+            if dist < 28.0 then
+                local sx, sy = getScreenFromWorldPosition(x, y, z + 1.15)
                 if sx and sy then
                     local activeTask, idx = data.taskMgr:getActiveTask()
-                    local taskName = activeTask and ("Slot " .. idx .. ": Type " .. activeTask:getTaskType()) or "None"
-                    local info = string.format("Task: %s\nFear: %d | Temper: %d\nHP: %.0f", taskName, data.stats.fear or 0, data.stats.temper or 0, getElementHealth(ped))
-                    dxDrawText(info, sx - 80, sy - 20, sx + 80, sy + 20, tocolor(255, 255, 255, 220), 1, "default-bold", "center", "center")
+                    local tType = activeTask and activeTask:getTaskType() or 0
+                    local taskName = TaskNames and TaskNames[tType] or ("Type " .. tType)
+                    local color = (tType == TASK_COMPLEX_DIVE_AWAY) and tocolor(255, 100, 0, 240)
+                               or (tType == TASK_COMPLEX_KILL_PED_ON_FOOT) and tocolor(255, 40, 40, 240)
+                               or (tType == TASK_COMPLEX_SMART_FLEE_ENTITY) and tocolor(255, 200, 0, 240)
+                               or (tType == TASK_COMPLEX_MEDIC_CPR) and tocolor(0, 220, 255, 240)
+                               or (tType == TASK_COMPLEX_EXTINGUISH_FIRE) and tocolor(255, 150, 0, 240)
+                               or (tType == TASK_COMPLEX_POLICE_ARREST) and tocolor(50, 150, 255, 240)
+                               or tocolor(0, 255, 140, 230)
+                    
+                    local info = string.format("[%s]\nHP: %.0f | Fear: %d | Temp: %d", taskName, getElementHealth(ped), data.stats.fear or 0, data.stats.temper or 0)
+                    dxDrawText(info, sx - 100, sy - 25, sx + 100, sy + 25, color, 1.05, "default-bold", "center", "center")
+                end
+                
+                -- Vizuális vonal a célcsomóponthoz séta közben
+                local activeTask = data.taskMgr:getActiveTask()
+                if activeTask and activeTask.targetNode then
+                    dxDrawLine3D(x, y, z, activeTask.targetNode.x, activeTask.targetNode.y, activeTask.targetNode.z + 0.3, tocolor(0, 255, 120, 130), 2)
                 end
             end
         end
     end
+    
+    -- Debug HUD információs panel a bal oldalon
+    local zoneName, zoneType = ZonesData.getZoneAtPosition(px, py)
+    local stars = getPlayerWantedLevel() or 0
+    local hudText = string.format("[SP NPC RENDSZER - DEBUG AKTÍV]\nAktív NPC-k: %d / %d\nZóna: %s (%s)\nKörözés: %d csillag", activeCount, Config.MaxPedsPerPlayer, zoneName or "Ismeretlen", zoneType or "None", stars)
+    dxDrawRectangle(15, 195, 240, 75, tocolor(0, 0, 0, 150))
+    dxDrawText(hudText, 25, 202, 250, 265, tocolor(0, 255, 200, 230), 1.0, "default-bold", "left", "top")
 end

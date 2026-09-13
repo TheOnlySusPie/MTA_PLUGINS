@@ -6,7 +6,7 @@
 Config = {}
 
 -- Debug beállítások
-Config.Debug = false               -- Részletes konzolüzenetek és látómező/útvonal kirajzolás
+Config.Debug = true                -- Részletes konzolüzenetek és látómező/útvonal kirajzolás
 Config.ShowPedBlips = false        -- Térképi ikonok megjelenítése a teszteléshez
 
 -- Populáció és spawn határok
@@ -34,6 +34,13 @@ Config.EnableHornReactions = true  -- Dudálásra való reakció (ökölrázás 
 Config.EnableGangWars = true       -- Ellenséges bandák közötti harc találkozáskor (Acquaintance HATE)
 Config.EnableCopPursuit = true     -- Rendőrök üldözik a körözött vagy fegyverrel támadó játékost
 Config.EnablePedBump = true        -- Játékossal való ütközéskor meglökés / düh reakció
+Config.EnableEmergencyServices = true -- 911 Mentők, tűzoltók és rendőrségi erősítés küldése
+Config.EnableAmbulanceService = true   -- Mentőautó és CPR újraélesztés holttestekhez
+Config.EnableFireService = true        -- Tűzoltóautó és poroltós oltás égő járművekhez
+Config.EnablePoliceDispatch = true     -- Rendőrautó és erősítés körözött játékoshoz
+Config.EnableWantedStars = true        -- Dinamikus körözési csillagok és büntetések kezelése
+Config.MedicCPRReviveChance = 65       -- Újraélesztési esély (%) a mentősöknél CPR után
+Config.EmergencyCooldown = 12000       -- Segélykocsi küldési minimum szünet (12 mp)
 
 -- Fegyvereloszlás
 Config.GangWeaponChance = 65       -- Bandatagok fegyvertartási esélye (%)

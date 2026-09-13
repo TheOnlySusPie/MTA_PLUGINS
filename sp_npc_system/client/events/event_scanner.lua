@@ -30,6 +30,19 @@ function EventScanner.onWeaponFire(weapon, ammo, clip, hitX, hitY, hitZ, hitElem
             end
         end
     end
+    
+    -- Játékos lövöldözés bűncselekmény jelentése, ha van tanú vagy rendőr a közelben
+    if shooter == localPlayer and Config.EnableWantedStars then
+        for ped, _ in pairs(peds) do
+            if isElement(ped) and not isPedDead(ped) then
+                local px, py, pz = getElementPosition(ped)
+                if MathUtils.getDistance2D(sx, sy, px, py) <= 30.0 and math.abs(sz - pz) <= 6.0 then
+                    EmergencyManager.reportCrime("GUNFIRE")
+                    break
+                end
+            end
+        end
+    end
 end
 
 -- Amikor egy NPC sebződik
@@ -37,6 +50,16 @@ function EventScanner.onPedDamage(attacker, weapon, bodypart, loss)
     local ped = source
     if PedManager.isManagedPed(ped) then
         PedManager.eventHandler:handleDamage(ped, attacker, weapon, bodypart, loss)
+    end
+    
+    if attacker == localPlayer and Config.EnableWantedStars then
+        local model = getElementModel(ped)
+        local gang = PedStats.getPedGang(model)
+        if gang == "COP" then
+            EmergencyManager.reportCrime("ATTACK_COP")
+        else
+            EmergencyManager.reportCrime("ASSAULT")
+        end
     end
 end
 

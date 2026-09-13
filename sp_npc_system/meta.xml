@@ -12,6 +12,7 @@
     <script src="server/server_main.lua" type="server" />
     <script src="server/server_spawner.lua" type="server" />
     <script src="server/server_damage.lua" type="server" />
+    <script src="server/server_emergency.lua" type="server" />
 
     <!-- Client Scripts (AI Architecture & Events) -->
     <script src="client/nodes.lua" type="client" cache="false" />
@@ -24,13 +25,15 @@
     <script src="client/ai/task_combat.lua" type="client" />
     <script src="client/ai/task_reactions.lua" type="client" />
     <script src="client/ai/task_chat.lua" type="client" />
+    <script src="client/ai/task_emergency.lua" type="client" />
     <script src="client/events/event_handler.lua" type="client" />
     <script src="client/events/event_scanner.lua" type="client" />
+    <script src="client/events/emergency_manager.lua" type="client" />
     <script src="client/client_spawner.lua" type="client" />
     <script src="client/client_main.lua" type="client" />
 
     <!-- Settings -->
     <settings>
-        <setting name="*debug" value="false" />
+        <setting name="*debug" value="true" />
     </settings>
 </meta>
